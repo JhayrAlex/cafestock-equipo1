@@ -1,6 +1,7 @@
 package cafestock.ui;
 
 import cafestock.datos.ProductoRepositorio;
+import cafestock.datos.VentaRepositorio;
 import cafestock.modelo.Producto;
 import cafestock.servicio.ValidadorProducto;
 
@@ -9,6 +10,8 @@ import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -30,6 +33,7 @@ public class FormularioProductos extends JFrame {
     private final JButton btnGuardar = new JButton("Guardar producto");
     private final JButton btnGuardarCambios = new JButton("Guardar cambios");
     private final JButton btnCancelarEdicion = new JButton("Cancelar / Nuevo");
+    private final JButton btnAbrirVentas = new JButton("Registrar ventas");
 
     private final DefaultTableModel modelo = new DefaultTableModel(
             new String[]{"Código", "Nombre", "Precio (USD)", "Stock", "Stock mínimo"}, 0) {
@@ -46,6 +50,14 @@ public class FormularioProductos extends JFrame {
         this.repo = repo;
         construirPantalla();
         refrescarLista();
+
+        // Refresca la tabla automáticamente cuando se regresa de la pantalla de ventas
+        addWindowFocusListener(new WindowAdapter() {
+            @Override
+            public void windowGainedFocus(WindowEvent e) {
+                refrescarLista();
+            }
+        });
     }
 
     private void construirPantalla() {
@@ -69,11 +81,13 @@ public class FormularioProductos extends JFrame {
         btnGuardar.addActionListener(e -> guardar());
         btnGuardarCambios.addActionListener(e -> guardarCambios());
         btnCancelarEdicion.addActionListener(e -> limpiarCampos());
+        btnAbrirVentas.addActionListener(e -> abrirVentas());
         btnGuardarCambios.setEnabled(false);
 
         panelBotones.add(btnGuardar);
         panelBotones.add(btnGuardarCambios);
         panelBotones.add(btnCancelarEdicion);
+        panelBotones.add(btnAbrirVentas);
 
         c.gridx = 0;
         c.gridy = 5;
@@ -109,8 +123,12 @@ public class FormularioProductos extends JFrame {
         add(form, BorderLayout.NORTH);
         add(panelCentro, BorderLayout.CENTER);
 
-        setSize(680, 560);
+        setSize(720, 560);
         setLocationRelativeTo(null);
+    }
+
+    private void abrirVentas() {
+        new FormularioVentas(repo, new VentaRepositorio()).setVisible(true);
     }
 
     private void agregarFila(JPanel panel, GridBagConstraints c, int fila, String texto, JTextField campo) {
