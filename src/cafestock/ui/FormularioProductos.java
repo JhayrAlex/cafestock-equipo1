@@ -2,12 +2,14 @@ package cafestock.ui;
 
 import cafestock.datos.ProductoRepositorio;
 import cafestock.modelo.Producto;
+import cafestock.servicio.BuscadorProductos;
 import cafestock.servicio.ValidadorProducto;
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.io.IOException;
+import java.util.List;
 import java.util.Locale;
 
 /** HU-A1 · Formulario de registro y lista de productos. */
@@ -20,6 +22,7 @@ public class FormularioProductos extends JFrame {
     private final JTextField txtPrecio = new JTextField(12);
     private final JTextField txtStock = new JTextField(12);
     private final JTextField txtStockMinimo = new JTextField(12);
+    private final JTextField txtBuscar = new JTextField(18);
 
     private final DefaultTableModel modelo = new DefaultTableModel(
             new String[]{"Código", "Nombre", "Precio (USD)", "Stock", "Stock mínimo"}, 0) {
@@ -57,11 +60,29 @@ public class FormularioProductos extends JFrame {
         c.gridx = 1; c.gridy = 5;
         form.add(btnGuardar, c);
 
+        // HU-A2 · Búsqueda por código o por parte del nombre
+        JPanel panelBusqueda = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 4));
+        panelBusqueda.add(new JLabel("Buscar (código o nombre):"));
+        panelBusqueda.add(txtBuscar);
+        JButton btnBuscar = new JButton("Buscar");
+        JButton btnTodos = new JButton("Ver todos");
+        btnBuscar.addActionListener(e -> buscar());
+        txtBuscar.addActionListener(e -> buscar()); // Enter también busca
+        btnTodos.addActionListener(e -> {
+            txtBuscar.setText("");
+            refrescarLista();
+        });
+        panelBusqueda.add(btnBuscar);
+        panelBusqueda.add(btnTodos);
+
         JScrollPane scroll = new JScrollPane(new JTable(modelo));
-        scroll.setBorder(BorderFactory.createTitledBorder("Productos registrados"));
+        JPanel panelLista = new JPanel(new BorderLayout());
+        panelLista.setBorder(BorderFactory.createTitledBorder("Productos registrados"));
+        panelLista.add(panelBusqueda, BorderLayout.NORTH);
+        panelLista.add(scroll, BorderLayout.CENTER);
 
         add(form, BorderLayout.NORTH);
-        add(scroll, BorderLayout.CENTER);
+        add(panelLista, BorderLayout.CENTER);
 
         setSize(620, 520);
         setLocationRelativeTo(null);
@@ -114,22 +135,46 @@ public class FormularioProductos extends JFrame {
             return;
         }
 
+        txtBuscar.setText("");
         refrescarLista();
         limpiarCampos();
         JOptionPane.showMessageDialog(this, "Producto guardado correctamente.");
     }
 
     private void refrescarLista() {
-        modelo.setRowCount(0);
         try {
-            for (Producto p : repo.listar()) {
-                modelo.addRow(new Object[]{
-                        p.getCodigo(), p.getNombre(),
-                        String.format(Locale.US, "%.2f", p.getPrecio()),
-                        p.getStock(), p.getStockMinimo()});
+            mostrar(repo.listar());
+        } catch (IOException | RuntimeException ex) {
+            aviso("No se pudo leer productos.csv: " + ex.getMessage());
+        }
+    }
+
+    private void buscar() {
+        String texto = txtBuscar.getText().trim();
+        if (texto.isEmpty()) {
+            refrescarLista(); // sin texto se muestran todos
+            return;
+        }
+        try {
+            List<Producto> encontrados = BuscadorProductos.buscar(texto, repo.listar());
+            mostrar(encontrados);
+            if (encontrados.isEmpty()) {
+                JOptionPane.showMessageDialog(this,
+                        "No se encontraron productos con \"" + texto + "\".",
+                        "Búsqueda", JOptionPane.INFORMATION_MESSAGE);
             }
         } catch (IOException | RuntimeException ex) {
             aviso("No se pudo leer productos.csv: " + ex.getMessage());
+        }
+    }
+
+    private void mostrar(List<Producto> productos) {
+        modelo.setRowCount(0);
+        for (Producto p : productos) {
+            modelo.addRow(new Object[]{
+                    p.getCodigo(), p.getNombre(),
+                    String.format(Locale.US, "%.2f", p.getPrecio()),
+                    p.getStock(), p.getStockMinimo()});
         }
     }
 
