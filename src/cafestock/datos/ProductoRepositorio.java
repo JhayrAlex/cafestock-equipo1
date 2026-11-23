@@ -61,6 +61,14 @@ public class ProductoRepositorio {
         String linea = p.getCodigo() + SEP + p.getNombre() + SEP
                 + String.format(Locale.US, "%.2f", p.getPrecio()) + SEP
                 + p.getStock() + SEP + p.getStockMinimo() + System.lineSeparator();
+        // Si la última línea del archivo no termina en salto de línea,
+        // se agrega uno para que el producto nuevo no se pegue a la anterior.
+        if (Files.exists(archivo) && Files.size(archivo) > 0) {
+            byte[] contenido = Files.readAllBytes(archivo);
+            if (contenido[contenido.length - 1] != '\n') {
+                linea = System.lineSeparator() + linea;
+            }
+        }
         Files.write(archivo, linea.getBytes(StandardCharsets.UTF_8),
                 StandardOpenOption.CREATE, StandardOpenOption.APPEND);
     }
