@@ -13,7 +13,7 @@ import java.util.List;
 import java.util.Locale;
 
 /**
- * Guarda, lee y actualiza los productos en datos/productos.csv (ruta relativa, junto al .jar).
+ * Guarda y lee los productos en datos/productos.csv (ruta relativa, junto al .jar).
  */
 public class ProductoRepositorio {
     private static final String SEP = ";";
@@ -56,11 +56,22 @@ public class ProductoRepositorio {
         return false;
     }
 
+    /** Devuelve el producto con ese código (sin distinguir mayúsculas) o null si no existe. */
+    public Producto buscarPorCodigo(String codigo) throws IOException {
+        if (codigo == null) {
+            return null;
+        }
+        for (Producto p : listar()) {
+            if (p.getCodigo().equalsIgnoreCase(codigo.trim())) {
+                return p;
+            }
+        }
+        return null;
+    }
+
     public void guardar(Producto p) throws IOException {
         Files.createDirectories(archivo.toAbsolutePath().getParent());
-        String linea = p.getCodigo() + SEP + p.getNombre() + SEP
-                + String.format(Locale.US, "%.2f", p.getPrecio()) + SEP
-                + p.getStock() + SEP + p.getStockMinimo() + System.lineSeparator();
+        String linea = formatear(p) + System.lineSeparator();
         // Si la última línea del archivo no termina en salto de línea,
         // se agrega uno para que el producto nuevo no se pegue a la anterior.
         if (Files.exists(archivo) && Files.size(archivo) > 0) {
@@ -74,34 +85,33 @@ public class ProductoRepositorio {
     }
 
     /**
-     * HU-A2 · Actualiza los datos de un producto existente (buscando por su código único)
-     * y reescribe datos/productos.csv manteniendo el formato del repositorio.
+     * Reemplaza en el CSV el producto que tiene el mismo código (HU-A3 lo usa para
+     * descontar stock; HU-A2 Editar/Guardar cambios también). Reescribe todo el archivo.
      */
-    public void actualizar(Producto actualizado) throws IOException {
-        if (actualizado == null) {
-            throw new IllegalArgumentException("El producto a actualizar no puede ser nulo.");
-        }
+    public void actualizar(Producto p) throws IOException {
         List<Producto> todos = listar();
-        List<String> lineas = new ArrayList<>();
         boolean encontrado = false;
-
-        for (Producto p : todos) {
-            if (p.getCodigo().equalsIgnoreCase(actualizado.getCodigo().trim())) {
-                p = actualizado;
+        for (int i = 0; i < todos.size(); i++) {
+            if (todos.get(i).getCodigo().equalsIgnoreCase(p.getCodigo())) {
+                todos.set(i, p);
                 encontrado = true;
+                break;
             }
-            lineas.add(p.getCodigo() + SEP + p.getNombre() + SEP
-                    + String.format(Locale.US, "%.2f", p.getPrecio()) + SEP
-                    + p.getStock() + SEP + p.getStockMinimo());
         }
-
         if (!encontrado) {
-            throw new IllegalArgumentException(
-                    "No se encontró un producto con el código \"" + actualizado.getCodigo() + "\".");
+            throw new IllegalArgumentException("No existe el producto con código " + p.getCodigo());
         }
-
-        Files.createDirectories(archivo.toAbsolutePath().getParent());
-        Files.write(archivo, lineas, StandardCharsets.UTF_8,
+        StringBuilder sb = new StringBuilder();
+        for (Producto x : todos) {
+            sb.append(formatear(x)).append(System.lineSeparator());
+        }
+        Files.write(archivo, sb.toString().getBytes(StandardCharsets.UTF_8),
                 StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
+    }
+
+    private String formatear(Producto p) {
+        return p.getCodigo() + SEP + p.getNombre() + SEP
+                + String.format(Locale.US, "%.2f", p.getPrecio()) + SEP
+                + p.getStock() + SEP + p.getStockMinimo();
     }
 }
