@@ -2,6 +2,7 @@ package cafestock.ui;
 
 import cafestock.datos.ProductoRepositorio;
 import cafestock.modelo.Producto;
+import cafestock.servicio.ValidadorProducto;
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
@@ -80,9 +81,10 @@ public class FormularioProductos extends JFrame {
         String stockTxt = txtStock.getText().trim();
         String minimoTxt = txtStockMinimo.getText().trim();
 
-        if (codigo.isEmpty() || nombre.isEmpty() || precioTxt.isEmpty()
-                || stockTxt.isEmpty() || minimoTxt.isEmpty()) {
-            aviso("Todos los campos son obligatorios.");
+        String errorDatos = ValidadorProducto.validarDatosProducto(
+                codigo, nombre, precioTxt, stockTxt, minimoTxt);
+        if (errorDatos != null) {
+            aviso(errorDatos);
             return;
         }
         if (codigo.contains(";") || nombre.contains(";")) {
@@ -91,8 +93,9 @@ public class FormularioProductos extends JFrame {
         }
 
         try {
-            if (repo.existe(codigo)) {
-                aviso("El código \"" + codigo + "\" ya existe. El producto no se guardó.");
+            String errorCodigo = ValidadorProducto.validarCodigoUnico(codigo, repo.listar());
+            if (errorCodigo != null) {
+                aviso(errorCodigo);
                 return;
             }
             double precio = Double.parseDouble(precioTxt.replace(',', '.'));
