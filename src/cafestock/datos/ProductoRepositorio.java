@@ -13,7 +13,7 @@ import java.util.List;
 import java.util.Locale;
 
 /**
- * Guarda y lee los productos en datos/productos.csv (ruta relativa, junto al .jar).
+ * Guarda, lee y actualiza los productos en datos/productos.csv (ruta relativa, junto al .jar).
  */
 public class ProductoRepositorio {
     private static final String SEP = ";";
@@ -71,5 +71,37 @@ public class ProductoRepositorio {
         }
         Files.write(archivo, linea.getBytes(StandardCharsets.UTF_8),
                 StandardOpenOption.CREATE, StandardOpenOption.APPEND);
+    }
+
+    /**
+     * HU-A2 · Actualiza los datos de un producto existente (buscando por su código único)
+     * y reescribe datos/productos.csv manteniendo el formato del repositorio.
+     */
+    public void actualizar(Producto actualizado) throws IOException {
+        if (actualizado == null) {
+            throw new IllegalArgumentException("El producto a actualizar no puede ser nulo.");
+        }
+        List<Producto> todos = listar();
+        List<String> lineas = new ArrayList<>();
+        boolean encontrado = false;
+
+        for (Producto p : todos) {
+            if (p.getCodigo().equalsIgnoreCase(actualizado.getCodigo().trim())) {
+                p = actualizado;
+                encontrado = true;
+            }
+            lineas.add(p.getCodigo() + SEP + p.getNombre() + SEP
+                    + String.format(Locale.US, "%.2f", p.getPrecio()) + SEP
+                    + p.getStock() + SEP + p.getStockMinimo());
+        }
+
+        if (!encontrado) {
+            throw new IllegalArgumentException(
+                    "No se encontró un producto con el código \"" + actualizado.getCodigo() + "\".");
+        }
+
+        Files.createDirectories(archivo.toAbsolutePath().getParent());
+        Files.write(archivo, lineas, StandardCharsets.UTF_8,
+                StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
     }
 }
