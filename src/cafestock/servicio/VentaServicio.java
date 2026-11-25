@@ -25,7 +25,16 @@ public class VentaServicio {
         this.ventas = ventas;
     }
 
+    /** Venta con la fecha de hoy. */
     public Venta registrarVenta(String codigo, int cantidad) throws IOException {
+        return registrarVenta(LocalDate.now(), codigo, cantidad);
+    }
+
+    /** Venta con la fecha elegida en la pantalla de venta. */
+    public Venta registrarVenta(LocalDate fecha, String codigo, int cantidad) throws IOException {
+        if (fecha == null) {
+            throw new IllegalArgumentException("La fecha es obligatoria.");
+        }
         if (codigo == null || codigo.trim().isEmpty()) {
             throw new IllegalArgumentException("Debes elegir un producto.");
         }
@@ -47,7 +56,7 @@ public class VentaServicio {
         p.setStock(stockAnterior - cantidad);
         productos.actualizar(p);
         try {
-            return ventas.guardar(LocalDate.now(), p.getCodigo(), cantidad, total);
+            return ventas.guardar(fecha, p.getCodigo(), cantidad, total);
         } catch (IOException | RuntimeException e) {
             // Si la venta no se pudo guardar, se devuelve el stock a su valor anterior.
             p.setStock(stockAnterior);

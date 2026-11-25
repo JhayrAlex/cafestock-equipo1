@@ -4,6 +4,7 @@ import cafestock.datos.ProductoRepositorio;
 import cafestock.datos.VentaRepositorio;
 import cafestock.modelo.Producto;
 import cafestock.modelo.Venta;
+import cafestock.servicio.VentaServicio;
 
 import javax.swing.*;
 import javax.swing.event.DocumentEvent;
@@ -175,19 +176,16 @@ public class FormularioVentas extends JFrame {
             return;
         }
 
-        double total = seleccionado.getPrecio() * cantidad;
-
+        // Guarda la venta y descuenta el stock en una sola operación (VentaServicio).
+        Venta venta;
         try {
-            ventaRepo.guardar(fecha, seleccionado.getCodigo(), cantidad, total);
-
-            // Descuenta el stock automáticamente y actualiza datos/productos.csv
-            seleccionado.setStock(seleccionado.getStock() - cantidad);
-            productoRepo.actualizar(seleccionado);
-
+            venta = new VentaServicio(productoRepo, ventaRepo)
+                    .registrarVenta(fecha, seleccionado.getCodigo(), cantidad);
         } catch (IOException | RuntimeException ex) {
             aviso("Error al registrar la venta: " + ex.getMessage());
             return;
         }
+        double total = venta.getTotal();
 
         txtCantidad.setText("");
         lblTotal.setText("$ 0.00");
